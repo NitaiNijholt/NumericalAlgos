@@ -1,0 +1,125 @@
+# https://github.com/TayssirDo/QR-decomposition/blob/master/qr.py
+# https://www.cs.utexas.edu/users/plapack/icpp98/node4.html
+# https://www.cs.utexas.edu/users/flame/Notes/NotesOnHouseholderQR.pdf
+# https://stackoverflow.com/questions/53489237/how-can-you-implement-householder-based-qr-decomposition-in-python
+
+
+# TODO: Fix bugs (?)
+
+
+def householder_qr(A):
+
+    # Following Algorithm 3.1 in Heath
+    A = A.copy()
+    m,n = A.shape
+    Q = np.zeros((m, n))
+    R = np.zeros((n, n))
+
+    # Loop over columns
+    for k in range(0,min(n,m-1)):
+        
+        # Compute Householder vector for current row
+        a_k = -np.sign(A[k,k]) * np.linalg.norm(A[k,:])
+        v_k = np.zeros((m, 1))
+        e_k = np.zeros((m, 1))      
+        
+        e_k[:,k] = 1
+        print(v_k[k:,:],A[k:,:])
+        v_k[k:,:] = A[k:,k]
+        v_k = v_k.T - a_k * e_k
+
+        b_k = np.matmul(v_k.T,v_k)
+
+        # Skip column if already zero
+        if b_k == 0:
+            pass
+        else:
+            # Apply transformation to reamining submatrix
+            for j in range(k,n):
+                #print(j,'A row j',A[j,:])
+                gamma_j = np.matmul(v_k.T,A[j,:])
+                A[j,:] = A[j,:] - np.matmul((2*gamma_j / b_k), v_k)
+
+        
+
+        #print(A[k,k:],A[k,k],A[m-1,k])
+        #b_k = v_k.T * v_k
+
+    # A should now be upper triangular
+    
+    print(A)
+    Q,R = 1,1
+    return Q, R
+
+
+
+
+# https://www.tutorialexample.com/best-practice-to-numpy-create-hilbert-matrix-for-beginners-numpy-tutorial/
+def hilbert(n):
+    x = np.arange(1, n+1) + np.arange(0, n)[:, np.newaxis]
+    return 1.0/x
+
+A = hilbert(5)
+Q , R = householder_qr(A)
+
+print(A)
+print(np.multiply(Q,R))
+print('END')
+
+
+"""
+def householder_qr_old(A):
+    '''Implements the Householder method for QR decomposition
+
+    Returns
+    Q: ?
+    R: ?
+    
+    '''
+    # YOUR CODE HERE
+    n,m = A.shape[0], A.shape[1]
+    R = A
+    Q = np.zeros(A.shape)
+    I = np.identity(n)
+    first_iteration = True
+
+    for i in range(n - 1):
+        x = [r[i] for r in R[i:]]
+        e = [r[i] for r in I[i:]]
+        norm_x = np.linalg.norm(x)
+        alpha = -np.sign(x[0]) * norm_x
+
+        # TODO: Uselist comprehension or better, np array
+        u = map(lambda p,q: p + alpha * q, x, e)
+        u = np.fromiter(u, dtype=np.float)
+        #u = [(lambda p,q: p + alpha * q, x)(x) for x in e]
+        #print(u)
+        # TODO: Uselist comprehension or better, np array
+        norm_u = np.sqrt(sum([u_i**2 for u_i in u])) #np.linalg.norm(u)
+        v = map(lambda p: p/norm_u, u)
+        v = np.fromiter(u, dtype=np.float)
+
+        # Q minor matrix
+        Q_min = [ [float(i==j) - 2.0 * v[i] * v[j] for i in range(n - 1 - i)] for j in range(n - 1 - i) ]
+
+        # Pad out with elemetns from identity I
+        Q_t = [[ Q_i(Q_min,i,j,k) for i in range(n)] for j in range(n)]
+
+
+        # At first run, right multiply  by A
+        # Else, multiply by Q
+        if first_iteration:
+            Q = Q_t
+            R = np.matmul(Q_t, A)
+            first_iteration = False
+        else:
+            Q = np.matmul(Q_t, Q)
+            R = np.matmul(Q_t, R)
+
+ 
+
+    # Transpose Q
+
+    # Return everything
+    return Q, R
+"""
