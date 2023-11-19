@@ -1,6 +1,13 @@
 import numpy as np
 
-def householder_qr(A):
+
+# https://www.tutorialexample.com/best-practice-to-numpy-create-hilbert-matrix-for-beginners-numpy-tutorial/
+def hilbert(n):
+    x = np.arange(1, n+1) + np.arange(0, n)[:, np.newaxis]
+    return 1.0/x
+
+
+def householder_qr_old(A):
     # Following Algorithm 3.1 in Heath
     A = A.copy()
     m,n = A.shape
@@ -41,10 +48,17 @@ def householder_qr(A):
                 Q[:,k:] = Q[:,k:] - (2*gamma_j / b_k)*v_k
                 R[k:,k:] = A[k:,k:]
     
-    print('A loop', A)
+    #print('A loop', A)
 
     return Q,R
 
+#A = hilbert(5)
+#Q, R = householder_qr_old(A)
+
+#print('OLD')
+
+#print(Q)
+#print('OLD')
 
 def householder_qr2(A):
     A = A.copy()
@@ -79,82 +93,12 @@ def householder_qr2(A):
     return Q, R
 
 
-# https://www.tutorialexample.com/best-practice-to-numpy-create-hilbert-matrix-for-beginners-numpy-tutorial/
-def hilbert(n):
-    x = np.arange(1, n+1) + np.arange(0, n)[:, np.newaxis]
-    return 1.0/x
-
-
-
 
 def householder_qr(A):
     """"Householder QR decomposition."""
     A = A.copy()
     m, n = A.shape
-    Q = np.eye(m)
-    R = A.copy()
-    minimum = min(m-1,n)
-
-    for k in range(minimum):
-        # On second iteration A[k:,k] is 0,0, why???
-        # Because A was overwriten! Solved it by updating R directly and keeping A only for reading
-        alpha_k = -np.sign(A[k,k]) * np.linalg.norm(R[k:,k])
-
-        # v_k and e_k were not the same size after iterations
-        # They always have to be column length
-        e_k = np.zeros(m)
-        e_k[k] = alpha_k
-
-        v_k = np.zeros(m)
-        v_k[k:] = R[k:,k]
-        print('TEST',e_k.T)
-        v_k = v_k.T - alpha_k * e_k.T
-
-        beta_k = v_k.T @ v_k
-        #print('HI',k,v_k,v_k[k], A[k:,k],e_k)
-
-        
-        if beta_k == 0:
-            continue
-        for j in range(k,n):
-        #if j == k:
-
-            # print('v_k.shape', v_k.shape)
-            # print('A[k:,j].shape', A[k:,j].shape)
-            # print('v_k.T',  v_k.T.shape)
-
-            # Now we need to apply transformation for the remaining submatrix!
-            # Which is A[k:,j]
-            #v_k = v_k[k:]
-            
-            if v_k.size == 1:
-                break
-            #print('HEY',v_k.T,A[k:,j])
-            #
-            #print(k,n,v_k.T,A[k:,j],R[k:,j],)
-            #gamma_j = v_k.T @ A[k:,j]
-            #print(v_k.T,R[:, j])
-            
-#            R[k:,j] = R[k:,j] - (2 * gamma_j/beta_k) * v_k[k:]
-#            Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k[k:]
-            gamma_j = v_k.T @ R[:, j]
-            
-            R[k,j] = Q[:,k].T @ A[:, j]
-            A[:, j] = A[:, j] - R[k,j]*Q[:,k]
-
-            R[:, j] -= (2 * gamma_j / beta_k) * v_k
-            Q[:, j] -= (2 * gamma_j / beta_k) * v_k
-            #R[k:,j] = R[k:,j] - (2 * gamma_j/beta_k) * v_k
-            #Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k
-
-    return Q, R
-
-
-def householder_qr(A):
-    """"Householder QR decomposition."""
-    A = A.copy()
-    m, n = A.shape
-    Q = np.eye(m)
+    Q = np.eye(m) #np.eye(m, n)
     R = A.copy()
     minimum = min(m-1,n)
 
@@ -164,7 +108,9 @@ def householder_qr(A):
         e_k[0] = alpha_k
         # print(e_k)
         # print(e_k.shape)
+        
         v_k = A[k:,k] - e_k
+        #print(v_k)
         beta_k = v_k.T @ v_k
 
         if beta_k == 0:
@@ -175,7 +121,7 @@ def householder_qr(A):
         # to other elements from row 1
         for j in range(k,n):
             if j >= k:
-
+                #print('Inner loop k j',k,j)
                 # Apply same v_k to other columns...
 
                 # print('v_k.shape', v_k.shape)
@@ -192,9 +138,26 @@ def householder_qr(A):
                 #print('IS V_K NORML',np.linalg.norm(v_k))
                 
                 # First column and main diagonal of Q are OK!
-                gamma_j = v_k.T @ Q[k:,j]
-                Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k
-                
+                #print('1',Q,'2',Q[k:,j],'3',v_k.T)
+        for j in range(m):     
+            gamma_j = v_k.T @ Q[k:,j]
+#                gamma_j = v_k.T @ Q[k:,j]
+#                Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k
+
+            Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k
+                #A[k:,j] = A[k:,j] - (2 * gamma_j/beta_k) * v_k
+                #Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k # Fixed line
+                #Q[k:,j] = Q[k:,j] - (2 * gamma_j/beta_k) * v_k
+                #print(k,j,Q[k:,j])
+                #print(R)#Q)
+                #print(Q[k:,j])
+                #gamma_j = v_k.T @ Q #[k:,j]
+
+                #H = np.eye(m-k)
+                #H = H[k:,j] - (2 * gamma_j/beta_k) * v_k
+                #print(H)
+                #Q = Q @ H                
+
                 #H = np.eye(m)
                 #H[k:, k:] = np.eye(m-k) - (2 * np.outer(v_k, v_k.T)) / beta_k
                 #Q = Q @ H
@@ -230,16 +193,8 @@ def householder_qr(A):
                 
                 #H = np.eye(m-k)
                 #H = H[k:,j] - (2 * gamma_j/beta_k) * v_k
-                #print(H)
-                #Q = Q @ H
-
-                # * v_k2
-        #for j in range(k,n):
-        #    v_k2 = np.zeros(m)
-        #    v_k2[k:] = v_k
-        #    Q[:,j] = Q[:,j] - (2 * gamma_j/beta_k) * v_k2
     R = A
-    return Q, R
+    return Q.T, R
 
 
 A = hilbert(5)
@@ -278,4 +233,4 @@ Q , R = modified_gram_schmidt(A)
 print('Q GM',Q)
 #print('R GM',R)
 #print('QR GM',Q @ R)
-#print('END')
+print('END')
